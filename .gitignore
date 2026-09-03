@@ -1,0 +1,26 @@
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+
+.venv/
+venv/
+env/
+
+# Large datasets
+data/raw/*
+data/interim/*
+data/processed/*
+data/external/*
+
+# Model weights
+models/*
+
+# Kaggle outputs
+kaggle/outputs/
+
+# Environment files
+.env
+
+# OS files
+.DS_Store
+Thumbs.db
