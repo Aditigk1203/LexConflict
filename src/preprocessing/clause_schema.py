@@ -23,6 +23,10 @@ class Clause:
     start_char: Optional[int] = None
     end_char: Optional[int] = None
 
+    # Parent/context information for legal sub-clauses.
+    parent_clause_id: Optional[str] = None
+    context_text: Optional[str] = None
+
     def to_dict(self) -> Dict[str, Any]:
         """
         Convert Clause object into a dictionary.

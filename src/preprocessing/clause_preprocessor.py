@@ -76,6 +76,90 @@ def split_into_clauses(text: str) -> List[Dict[str, Any]]:
 
     return clauses
 
+def is_subclause_fragment(text: str) -> bool:
+    """
+    Detect common legal list/sub-clause fragments.
+
+    Examples:
+        a) ...
+        b) ...
+        (c) ...
+        1. ...
+        (1) ...
+    """
+
+    text = text.strip()
+
+    patterns = [
+        r"^[a-z]\)",
+        r"^\([a-z]\)",
+        r"^[ivxlcdm]+\)",
+        r"^\([ivxlcdm]+\)",
+        r"^\d+\.",
+        r"^\(\d+\)",
+    ]
+
+    return any(
+        re.search(pattern, text, flags=re.IGNORECASE)
+        for pattern in patterns
+    )
+        
+def add_clause_context(
+    clauses: List[Dict[str, Any]],
+    document_id: str
+) -> List[Dict[str, Any]]:
+    """
+    Attach parent-clause context to legal sub-clause fragments.
+
+    The original clause text is preserved.
+
+    Example:
+
+        Parent:
+        The obligation of confidentiality shall not apply to any
+        Confidential Information that:
+
+        Child:
+        a) was known to the Receiving Party prior to such disclosure...
+
+    The child receives the parent clause ID and combined context text.
+    """
+
+    enriched = []
+
+    current_parent = None
+
+    for index, clause in enumerate(clauses):
+
+        clause = dict(clause)
+
+        clause_id = f"{document_id}_clause_{index + 1:04d}"
+        clause["clause_id"] = clause_id
+
+        text = clause["text"]
+
+        if is_subclause_fragment(text) and current_parent is not None:
+
+            clause["parent_clause_id"] = current_parent["clause_id"]
+
+            clause["context_text"] = (
+                current_parent["text"].rstrip()
+                + " "
+                + text.lstrip()
+            )
+
+        else:
+
+            clause["parent_clause_id"] = None
+            clause["context_text"] = text
+
+            # A normal clause becomes the potential parent
+            # for subsequent list fragments.
+            current_parent = clause
+
+        enriched.append(clause)
+
+    return enriched
 
 # ---------------------------------------------------------
 # 3. MODALITY DETECTION
@@ -84,11 +168,43 @@ def split_into_clauses(text: str) -> List[Dict[str, Any]]:
 def detect_modality(text: str) -> Optional[str]:
     """
     Detect common legal modality patterns.
+
+    The detector checks:
+    1. Definition-style language first
+    2. Prohibition
+    3. Permission
+    4. Obligation
+
+    Definition clauses are separated from obligations because
+    expressions such as "shall mean" and "will have the meaning"
+    are definitional rather than normative obligations.
     """
 
-    text_lower = text.lower()
+    text_lower = text.lower().strip()
 
+    # --------------------------------------------------------------
+    # Definition / terminology
+    # --------------------------------------------------------------
+    definition_patterns = [
+        r"\bshall mean\b",
+        r"\bshall have the meaning\b",
+        r"\bwill mean\b",
+        r"\bwill have the meaning\b",
+        r"\bwill have the respective meanings\b",
+        r"\bmeans\b",
+        r"\bis defined as\b",
+        r"\bare defined as\b",
+        r"\brefers to\b",
+        r"\bshall be defined as\b",
+    ]
+
+    for pattern in definition_patterns:
+        if re.search(pattern, text_lower):
+            return "definition"
+
+    # --------------------------------------------------------------
     # Prohibition
+    # --------------------------------------------------------------
     prohibition_patterns = [
         r"\bshall not\b",
         r"\bmust not\b",
@@ -103,20 +219,9 @@ def detect_modality(text: str) -> Optional[str]:
         if re.search(pattern, text_lower):
             return "prohibition"
 
-    # Obligation
-    obligation_patterns = [
-        r"\bshall\b",
-        r"\bmust\b",
-        r"\brequired to\b",
-        r"\bobligated to\b",
-        r"\bwill\b",
-    ]
-
-    for pattern in obligation_patterns:
-        if re.search(pattern, text_lower):
-            return "obligation"
-
+    # --------------------------------------------------------------
     # Permission
+    # --------------------------------------------------------------
     permission_patterns = [
         r"\bmay\b",
         r"\bpermitted to\b",
@@ -129,19 +234,24 @@ def detect_modality(text: str) -> Optional[str]:
         if re.search(pattern, text_lower):
             return "permission"
 
-    # Recommendation / weaker modality
-    recommendation_patterns = [
-        r"\bshould\b",
-        r"\brecommended\b",
-        r"\bencouraged to\b",
+    # --------------------------------------------------------------
+    # Obligation
+    # --------------------------------------------------------------
+    obligation_patterns = [
+        r"\bshall\b",
+        r"\bmust\b",
+        r"\brequired to\b",
+        r"\bobligated to\b",
     ]
 
-    for pattern in recommendation_patterns:
+    for pattern in obligation_patterns:
         if re.search(pattern, text_lower):
-            return "recommendation"
+            return "obligation"
 
+    # --------------------------------------------------------------
+    # No clear modality
+    # --------------------------------------------------------------
     return None
-
 
 # ---------------------------------------------------------
 # 4. PARTY DETECTION
@@ -288,7 +398,6 @@ def extract_proposition(text: str) -> str:
 # ---------------------------------------------------------
 # 7. PROCESS A DOCUMENT
 # ---------------------------------------------------------
-
 def preprocess_document(
     document: Dict[str, Any],
     dataset: str = "unknown"
@@ -331,18 +440,22 @@ def preprocess_document(
 
     raw_clauses = split_into_clauses(text)
 
+    # Add parent/context information.
+    raw_clauses = add_clause_context(
+        raw_clauses,
+        str(document_id)
+    )
+
     processed_clauses = []
 
-    for index, item in enumerate(raw_clauses):
+    for item in raw_clauses:
 
         clause_text = item["text"]
 
         clause = Clause(
             document_id=str(document_id),
 
-            clause_id=(
-                f"{document_id}_clause_{index + 1:04d}"
-            ),
+            clause_id=item["clause_id"],
 
             text=clause_text,
 
@@ -359,6 +472,13 @@ def preprocess_document(
             start_char=item["start_char"],
 
             end_char=item["end_char"],
+
+            parent_clause_id=item.get("parent_clause_id"),
+
+            context_text=item.get(
+                "context_text",
+                clause_text
+            ),
         )
 
         processed_clauses.append(clause)
