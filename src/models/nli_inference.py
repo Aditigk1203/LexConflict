@@ -32,7 +32,10 @@ class NLIPairDataset(Dataset):
         )
 
         evidence = str(
-            pair["evidence"]
+            pair.get(
+                "evidence",
+                pair.get("clause_text", "")
+            )
         )
 
         encoded = self.tokenizer(

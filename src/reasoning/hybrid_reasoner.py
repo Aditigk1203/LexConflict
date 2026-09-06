@@ -135,8 +135,12 @@ class HybridReasoner:
     def analyze(
         self,
         nli_result: Dict[str, Any],
-        structured_result: Dict[str, Any]
+        structured_result: Any
     ) -> Dict[str, Any]:
+
+    # ---------------------------------------------------------
+    # NLI result
+    # ---------------------------------------------------------
 
         nli_label = nli_result["label"]
 
@@ -145,14 +149,14 @@ class HybridReasoner:
             []
         )
 
-        # Label mapping:
-        # 0 = Entailment
-        # 1 = NotMentioned
-        # 2 = Contradiction
+    # Label mapping:
+    # 0 = Entailment
+    # 1 = NotMentioned
+    # 2 = Contradiction
 
         if len(probabilities) >= 3:
             contradiction_probability = float(
-                probabilities[2]
+             probabilities[2]
             )
         else:
             contradiction_probability = (
@@ -161,27 +165,71 @@ class HybridReasoner:
                 else 0.0
             )
 
-        structured_score = float(
-            structured_result["confidence"]
-        )
+    # ---------------------------------------------------------
+    # Structured result
+    # Supports both:
+    #   1. ConflictResult dataclass
+    #   2. Dictionary
+    # ---------------------------------------------------------
+
+        if isinstance(structured_result, dict):
+
+            structured_score = float(
+                structured_result.get(
+                    "confidence",
+                    0.0
+                )
+            )
+
+            conflict_type = structured_result.get(
+                "conflict_type",
+                "unknown"
+            )
+
+        else:
+
+            structured_score = float(
+                getattr(
+                    structured_result,
+                    "confidence",
+                    0.0
+                )
+            )
+
+            conflict_type = getattr(
+                structured_result,
+                "conflict_type",
+                "unknown"
+            )
+
+    # ---------------------------------------------------------
+    # Hybrid score
+    # ---------------------------------------------------------
 
         hybrid_score = self.calculate_hybrid_score(
             contradiction_probability,
             structured_score
         )
 
+    # ---------------------------------------------------------
+    # Final conflict decision
+    # ---------------------------------------------------------
+
         is_conflict = (
             hybrid_score >= self.conflict_threshold
         )
+
+    # ---------------------------------------------------------
+    # Confidence
+    # ---------------------------------------------------------
 
         level = self.confidence_level(
             hybrid_score
         )
 
-        conflict_type = structured_result.get(
-            "conflict_type",
-            "unknown"
-        )
+    # ---------------------------------------------------------
+    # Explanation
+    # ---------------------------------------------------------
 
         explanation = self.generate_explanation(
             nli_label,
@@ -189,6 +237,10 @@ class HybridReasoner:
             structured_score,
             conflict_type
         )
+
+    # ---------------------------------------------------------
+    # Final result
+    # ---------------------------------------------------------
 
         return {
             "nli_label": nli_label,
