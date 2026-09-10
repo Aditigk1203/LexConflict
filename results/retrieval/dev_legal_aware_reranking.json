@@ -1,0 +1,12 @@
+{
+  "method": "legal_aware_tfidf_reranking",
+  "queries": 614,
+  "candidate_rows": 6140,
+  "metrics": {
+    "recall_at_1": 0.19543973941368079,
+    "recall_at_2": 0.2736156351791531,
+    "recall_at_5": 0.41042345276872966,
+    "recall_at_10": 0.48534201954397393,
+    "mrr": 0.2827251693294039
+  }
+}

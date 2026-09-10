@@ -87,7 +87,11 @@ def main():
     # 6. Select a query clause
     # ---------------------------------------------------------
 
-    query_clause = test_clauses[0]
+    query_clause = next(
+        clause
+        for clause in test_clauses
+        if clause.get("modality") is not None
+    )
 
     print("\n" + "=" * 70)
     print("QUERY CLAUSE")

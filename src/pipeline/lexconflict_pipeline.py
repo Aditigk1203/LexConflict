@@ -46,14 +46,16 @@ OUTPUT_PATH = (
 
 # Keep this small for the first end-to-end test.
 # Once the pipeline works, we can increase it.
-MAX_DOCUMENTS = 1
+MAX_DOCUMENTS = 61
 
 TOP_K = 2
 
 NLI_BATCH_SIZE = 16
 
 NLI_MAX_LENGTH = 120
-
+MAX_DOCUMENTS = 61
+TOP_K = 2
+MAX_NLI_PAIRS = 1000
 
 # ------------------------------------------------------------
 # Hybrid configuration
@@ -105,7 +107,7 @@ def load_clauses(
         encoding="utf-8"
     ) as file:
 
-        clauses = json.load(file)
+        clauses = json.load(file)   
 
     print(
         f"Clauses loaded: {len(clauses)}"
@@ -356,7 +358,7 @@ def run_pipeline():
         for result in retrieval_results
     ]
 
-    pairs = pairs[:100]
+    pairs = pairs[:1000]
 
     print(
         f"NLI pairs created: "
