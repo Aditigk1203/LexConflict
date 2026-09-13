@@ -3,17 +3,23 @@ __pycache__/
 .ipynb_checkpoints/
 
 .venv/
+.venv-1/
 venv/
 env/
+
+.streamlit/secrets.toml
+
+test_contract.txt
+test_contract_lexconflict_analysis.json
+
+src/reasoning/conflict_engine_backup.py
+src/resolution/resolution_engine_backup.py
 
 # Large datasets
 data/raw/*
 data/interim/*
 data/processed/*
 data/external/*
-
-# Model weights
-models/*
 
 # Kaggle outputs
 kaggle/outputs/

@@ -7,9 +7,12 @@ class ConflictResolutionEngine:
 
     def resolve(self, graph_edge):
 
-        severity = calculate_severity(
-            graph_edge.hybrid_conflict_score
-        )
+        if graph_edge.conflict_type == "temporal_deadline_conflict":
+            severity = "high"
+        else:
+            severity = calculate_severity(
+                graph_edge.hybrid_conflict_score
+            )
 
         recommendation = generate_recommendation(
             graph_edge.conflict_type

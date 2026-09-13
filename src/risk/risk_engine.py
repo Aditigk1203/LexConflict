@@ -70,7 +70,10 @@ class RiskEngine:
                 "prohibition_vs_permission",
             }:
                 severity_values.append(0.85)
-
+            
+            elif conflict_type == "temporal_deadline_conflict":
+                severity_values.append(0.90)
+            
             elif conflict_type == "potential_semantic_conflict":
                 severity_values.append(0.70)
 
